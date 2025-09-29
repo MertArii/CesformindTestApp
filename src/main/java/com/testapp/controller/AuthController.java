@@ -20,6 +20,26 @@ public class AuthController {
     @Autowired
     private JwtUtil jwtUtil;
     
+    @PostMapping("/register")
+    public ResponseEntity<?> register(@RequestBody LoginRequest registerRequest) {
+        try {
+            // Check if user already exists
+            if (userService.findByName(registerRequest.getName()).isPresent()) {
+                return ResponseEntity.badRequest().body("User already exists");
+            }
+            
+            // Create new user
+            User user = new User(registerRequest.getName(), registerRequest.getPassword());
+            User savedUser = userService.save(user);
+            
+            String token = jwtUtil.generateToken(savedUser.getName());
+            return ResponseEntity.ok(new LoginResponse(token, savedUser.getName()));
+            
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Registration failed: " + e.getMessage());
+        }
+    }
+    
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
         try {

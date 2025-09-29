@@ -5,6 +5,7 @@ import com.testapp.dto.PostResponse;
 import com.testapp.model.User;
 import com.testapp.service.PostService;
 import com.testapp.service.UserService;
+import com.testapp.service.GeminiService;
 import com.testapp.config.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -26,10 +27,17 @@ public class PostController {
     @Autowired
     private JwtUtil jwtUtil;
     
+    @Autowired
+    private GeminiService geminiService;
+    
     @GetMapping
     public ResponseEntity<List<PostResponse>> getAllPosts() {
-        List<PostResponse> posts = postService.getAllPosts();
-        return ResponseEntity.ok(posts);
+        try {
+            List<PostResponse> posts = postService.getAllPosts();
+            return ResponseEntity.ok(posts);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(null);
+        }
     }
     
     @PostMapping
@@ -56,6 +64,30 @@ public class PostController {
             
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Failed to create post: " + e.getMessage());
+        }
+    }
+    
+    @PostMapping("/fix-images")
+    public ResponseEntity<?> fixEmptyImages() {
+        try {
+            postService.fixEmptyImages();
+            return ResponseEntity.ok("Images fixed successfully");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Failed to fix images: " + e.getMessage());
+        }
+    }
+    
+    @GetMapping("/test-gemini")
+    public ResponseEntity<?> testGemini() {
+        try {
+            System.out.println("🧪 Gemini test endpoint çağrıldı");
+            String result = geminiService.testGeminiConnection();
+            System.out.println("🧪 Gemini test sonucu: " + result);
+            return ResponseEntity.ok("Gemini test result: " + result);
+        } catch (Exception e) {
+            System.err.println("❌ Gemini test hatası: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body("Gemini test failed: " + e.getMessage());
         }
     }
 }
