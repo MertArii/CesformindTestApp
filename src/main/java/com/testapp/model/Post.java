@@ -23,6 +23,15 @@ public class Post {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
     
+    @Column(nullable = false)
+    private Integer likeCount = 0;
+    
+    @Column(nullable = false)
+    private Integer dislikeCount = 0;
+    
+    @Column(nullable = false)
+    private Integer saveCount = 0;
+    
     public Post() {}
     
     public Post(String prompt, String imageUrl, User user) {
@@ -30,6 +39,9 @@ public class Post {
         this.imageUrl = imageUrl;
         this.user = user;
         this.createdAt = LocalDateTime.now();
+        this.likeCount = 0;
+        this.dislikeCount = 0;
+        this.saveCount = 0;
     }
     
     // Getters and Setters
@@ -47,4 +59,13 @@ public class Post {
     
     public User getUser() { return user; }
     public void setUser(User user) { this.user = user; }
+    
+    public Integer getLikeCount() { return likeCount; }
+    public void setLikeCount(Integer likeCount) { this.likeCount = likeCount; }
+    
+    public Integer getDislikeCount() { return dislikeCount; }
+    public void setDislikeCount(Integer dislikeCount) { this.dislikeCount = dislikeCount; }
+    
+    public Integer getSaveCount() { return saveCount; }
+    public void setSaveCount(Integer saveCount) { this.saveCount = saveCount; }
 }

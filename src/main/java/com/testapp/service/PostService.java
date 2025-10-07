@@ -3,7 +3,9 @@ package com.testapp.service;
 import com.testapp.dto.PostResponse;
 import com.testapp.model.Post;
 import com.testapp.model.User;
+import com.testapp.model.UserPostInteraction;
 import com.testapp.repository.PostRepository;
+import com.testapp.service.UserInteractionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.scheduling.annotation.Async;
@@ -19,8 +21,15 @@ public class PostService {
 
     @Autowired
     private GeminiService geminiService;
+    
+    @Autowired
+    private UserInteractionService userInteractionService;
 
     public List<PostResponse> getAllPosts() {
+        return getAllPosts(null);
+    }
+    
+    public List<PostResponse> getAllPosts(Long userId) {
         List<Post> posts = postRepository.findAllByOrderByCreatedAtDesc();
         
         // Boş imageUrl'leri düzelt
@@ -40,7 +49,7 @@ public class PostService {
         }
         
         return posts.stream()
-                .map(this::convertToResponse)
+                .map(post -> convertToResponse(post, userId))
                 .collect(Collectors.toList());
     }
 
@@ -58,7 +67,7 @@ public class PostService {
             updatePostImageAsync(savedPost.getId(), prompt);
 
             // 3. Hemen response dön (kullanıcı beklemez)
-            return convertToResponse(savedPost);
+            return convertToResponse(savedPost, user.getId());
 
         } catch (Exception e) {
             System.err.println("Post oluşturma hatası: " + e.getMessage());
@@ -68,7 +77,7 @@ public class PostService {
             String errorUrl = "https://via.placeholder.com/800x600/FF6B6B/FFFFFF?text=Image+Generation+Failed";
             Post errorPost = new Post(prompt, errorUrl, user);
             Post savedErrorPost = postRepository.save(errorPost);
-            return convertToResponse(savedErrorPost);
+            return convertToResponse(savedErrorPost, user.getId());
         }
     }
 
@@ -131,14 +140,14 @@ public class PostService {
             String imageUrl = generateImageWithTimeout(prompt, 10);
             Post post = new Post(prompt, imageUrl, user);
             Post savedPost = postRepository.save(post);
-            return convertToResponse(savedPost);
+            return convertToResponse(savedPost, user.getId());
 
         } catch (Exception e) {
             System.err.println("Senkron post oluşturma hatası: " + e.getMessage());
             String fallbackUrl = getQuickPlaceholder(prompt);
             Post post = new Post(prompt, fallbackUrl, user);
             Post savedPost = postRepository.save(post);
-            return convertToResponse(savedPost);
+            return convertToResponse(savedPost, user.getId());
         }
     }
 
@@ -189,13 +198,84 @@ public class PostService {
         }
     }
 
+    public List<PostResponse> getSavedPosts(Long userId) {
+        System.out.println("💾 PostService.getSavedPosts called - User: " + userId);
+        
+        List<Post> savedPosts = userInteractionService.getSavedPosts(userId);
+        
+        return savedPosts.stream()
+                .map(post -> convertToResponse(post, userId))
+                .collect(Collectors.toList());
+    }
+    
+    /**
+     * Delete a post - only the owner can delete their own post
+     */
+    public boolean deletePost(Long postId, Long userId) {
+        try {
+            System.out.println("🗑️ Delete request for post ID: " + postId + " by user ID: " + userId);
+            
+            // Find the post
+            Post post = postRepository.findById(postId).orElse(null);
+            if (post == null) {
+                System.out.println("❌ Post not found with ID: " + postId);
+                return false;
+            }
+            
+            // Check if the user is the owner of the post
+            if (!post.getUser().getId().equals(userId)) {
+                System.out.println("❌ User " + userId + " is not the owner of post " + postId + ". Owner is: " + post.getUser().getId());
+                return false;
+            }
+            
+            // Delete the post
+            postRepository.delete(post);
+            System.out.println("✅ Post " + postId + " deleted successfully by user " + userId);
+            return true;
+            
+        } catch (Exception e) {
+            System.err.println("❌ Error deleting post " + postId + ": " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
+    
     private PostResponse convertToResponse(Post post) {
-        return new PostResponse(
+        return convertToResponse(post, null);
+    }
+    
+    private PostResponse convertToResponse(Post post, Long userId) {
+        PostResponse response = new PostResponse(
                 post.getId(),
                 post.getPrompt(),
                 post.getImageUrl(),
                 post.getUser().getName(),
                 post.getCreatedAt()
         );
+        
+        // Set interaction counts
+        response.setLikeCount(post.getLikeCount());
+        response.setDislikeCount(post.getDislikeCount());
+        response.setSaveCount(post.getSaveCount());
+        
+        // Set user interaction status if userId is provided
+        if (userId != null) {
+            UserPostInteraction interaction = userInteractionService.getUserInteraction(userId, post.getId());
+            if (interaction != null) {
+                response.setIsLiked(interaction.getIsLiked());
+                response.setIsDisliked(interaction.getIsDisliked());
+                response.setIsSaved(interaction.getIsSaved());
+            } else {
+                response.setIsLiked(false);
+                response.setIsDisliked(false);
+                response.setIsSaved(false);
+            }
+        } else {
+            response.setIsLiked(false);
+            response.setIsDisliked(false);
+            response.setIsSaved(false);
+        }
+        
+        return response;
     }
 }

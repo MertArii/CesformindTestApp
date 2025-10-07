@@ -8,6 +8,12 @@ public class PostResponse {
     private String imageUrl;
     private String userName;
     private LocalDateTime createdAt;
+    private Integer likeCount;
+    private Integer dislikeCount;
+    private Integer saveCount;
+    private Boolean isLiked;
+    private Boolean isDisliked;
+    private Boolean isSaved;
     
     public PostResponse() {}
     
@@ -17,6 +23,12 @@ public class PostResponse {
         this.imageUrl = imageUrl;
         this.userName = userName;
         this.createdAt = createdAt;
+        this.likeCount = 0;
+        this.dislikeCount = 0;
+        this.saveCount = 0;
+        this.isLiked = false;
+        this.isDisliked = false;
+        this.isSaved = false;
     }
     
     // Getters and Setters
@@ -34,4 +46,22 @@ public class PostResponse {
     
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    
+    public Integer getLikeCount() { return likeCount; }
+    public void setLikeCount(Integer likeCount) { this.likeCount = likeCount; }
+    
+    public Integer getDislikeCount() { return dislikeCount; }
+    public void setDislikeCount(Integer dislikeCount) { this.dislikeCount = dislikeCount; }
+    
+    public Integer getSaveCount() { return saveCount; }
+    public void setSaveCount(Integer saveCount) { this.saveCount = saveCount; }
+    
+    public Boolean getIsLiked() { return isLiked; }
+    public void setIsLiked(Boolean isLiked) { this.isLiked = isLiked; }
+    
+    public Boolean getIsDisliked() { return isDisliked; }
+    public void setIsDisliked(Boolean isDisliked) { this.isDisliked = isDisliked; }
+    
+    public Boolean getIsSaved() { return isSaved; }
+    public void setIsSaved(Boolean isSaved) { this.isSaved = isSaved; }
 }
